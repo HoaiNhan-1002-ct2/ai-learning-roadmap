@@ -1,0 +1,13 @@
+{
+  "name": "ai-learning-assistant",
+  "version": "1.0.0",
+  "description": "AI Learning Assistant & Roadmap Planner - Full Stack Project",
+  "scripts": {
+    "dev": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"cyan,magenta\" \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "backend": "npm run dev --prefix backend",
+    "frontend": "npm run dev --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
