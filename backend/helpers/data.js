@@ -503,6 +503,8 @@ const CHATBOT_RESPONSES = {
     
     "cảm ơn": "Rất vui được hỗ trợ bạn! Hãy cố gắng học tập đều đặn hàng ngày nhé, lộ trình học tập của bạn đang tiến triển rất tốt đấy!",
     
+    docker: "Docker là một nền tảng mã nguồn mở giúp đóng gói, vận chuyển và chạy các ứng dụng bên trong các container (thùng chứa). Container chứa mọi thứ cần thiết để ứng dụng chạy: mã nguồn, runtime, công cụ hệ thống, thư viện và cài đặt. Nhờ đó, ứng dụng của bạn sẽ chạy nhất quán trên bất kỳ môi trường nào, từ máy tính cá nhân đến máy chủ server (khắc phục được vấn đề 'chạy được trên máy tôi nhưng lỗi trên server').",
+
     default: "Câu hỏi của bạn rất thú vị! Để giải đáp chi tiết nhất, bạn có thể nói rõ hơn bạn đang gặp vướng mắc cụ thể ở đoạn code nào không? Ngoài ra, dựa trên định hướng học tập của bạn, mình đề xuất bạn nên tham khảo thêm các tài liệu chính thống tại **MDN Web Docs** hoặc trang chủ của công nghệ đó để nắm chắc lý thuyết nhé."
 };
 

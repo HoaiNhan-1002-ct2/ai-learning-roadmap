@@ -2,10 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool, logActivity } = require('../helpers/db');
 const { QUIZ_BANK } = require('../helpers/data');
-const { GoogleGenAI } = require('@google/genai');
-
-// Khởi tạo Gemini client, tự động dùng biến môi trường GEMINI_API_KEY
-const ai = new GoogleGenAI({});
+const { generateGroqContent } = require('../helpers/groqHelper');
 
 function checkOwner(req, res, next) {
     const callerId = req.headers['x-user-id'];
@@ -17,30 +14,28 @@ function checkOwner(req, res, next) {
 }
 
 router.get('/:userId', checkOwner, async (req, res) => {
-    const { career } = req.query;
+    const { career, topic } = req.query;
     try {
         const careerName = career || 'công nghệ thông tin';
-        const prompt = `Tạo 15 câu hỏi trắc nghiệm tiếng Việt chất lượng và phù hợp cho lĩnh vực: ${careerName}.
+        const numQuestions = topic ? 15 : 20;
+        const focus = topic ? `Bài kiểm tra này tập trung chuyên sâu vào chủ đề/giai đoạn: "${topic}" thuộc lĩnh vực ${careerName}.` : `Bài kiểm tra tổng hợp kiến thức lĩnh vực: ${careerName}.`;
+        
+        const prompt = `Tạo ${numQuestions} câu hỏi trắc nghiệm tiếng Việt chất lượng. ${focus}
 Yêu cầu:
 - Trả về danh sách (array) chính xác định dạng JSON. Không bọc trong bất kỳ object nào.
 - Mỗi câu hỏi bao gồm các trường có TÊN KEY tiếng Anh chính xác như sau:
-  - "id": Số thứ tự từ 1 đến 15.
+  - "id": Số thứ tự từ 1 đến ${numQuestions}.
   - "text": Nội dung câu hỏi.
   - "options": Mảng gồm đúng 4 câu trả lời.
-  - "correct": Vị trí của đáp án đúng trong mảng options (từ 0 đến 3).`;
+  - "correct": Vị trí của đáp án đúng trong mảng options (từ 0 đến 3).
+  - "explanation": Lời giải thích chi tiết. Bắt buộc phải chỉ ra RÕ RÀNG đâu là đáp án đúng và vì sao đáp án người dùng chọn là sai.`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-            }
-        });
+        const responseText = await generateGroqContent(prompt, "Bạn là một chuyên gia tạo bài kiểm tra trắc nghiệm (AI Quiz Generator). Trả về duy nhất JSON array, không kèm code block hay text dư thừa.", true);
         
-        const questions = JSON.parse(response.text);
+        const questions = JSON.parse(responseText);
         res.json({ questions });
     } catch (err) {
-        console.error("Gemini AI error in quiz:", err);
+        console.error("Groq AI error in quiz:", err);
         // Fallback to hardcoded bank
         const poolData = QUIZ_BANK[career] || QUIZ_BANK["default"];
         res.json({ questions: poolData });

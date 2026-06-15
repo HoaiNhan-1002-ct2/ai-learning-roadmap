@@ -2,9 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { ROADMAP_TEMPLATES } = require('../helpers/data');
 const { pool } = require('../helpers/db');
-const { GoogleGenAI } = require('@google/genai');
-
-const ai = new GoogleGenAI({});
+const { generateGroqContent } = require('../helpers/groqHelper');
 
 router.get('/resources', async (req, res) => {
     const { taskName } = req.query;
@@ -18,14 +16,19 @@ Yêu cầu trả về định dạng JSON array chính xác, không bọc trong 
   + Nếu là Bài viết/Khóa học: "https://www.google.com/search?q=" + từ khóa
 Không bao giờ tự bịa ra các đường dẫn URL chi tiết bài viết (ví dụ blog.com/abc-xyz) vì chúng thường không tồn tại.`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
+        const responseText = await generateGroqContent(prompt, "Bạn là chuyên gia giáo dục phân tích lộ trình học tập. Trả về đúng JSON array.", true);
+        let parsed = JSON.parse(responseText);
+        let resources = [];
+        if (Array.isArray(parsed)) {
+            resources = parsed;
+        } else if (typeof parsed === 'object' && parsed !== null) {
+            for (let key in parsed) {
+                if (Array.isArray(parsed[key])) {
+                    resources = parsed[key];
+                    break;
+                }
             }
-        });
-        const resources = JSON.parse(response.text);
+        }
         res.json({ resources });
     } catch (err) {
         console.error(err);
@@ -34,6 +37,24 @@ Không bao giờ tự bịa ra các đường dẫn URL chi tiết bài viết (
             { title: "Khóa học trên W3Schools", type: "Khóa học", url: "https://www.w3schools.com" },
             { title: "Video hướng dẫn trên YouTube", type: "Video", url: "https://youtube.com" }
         ]});
+    }
+});
+
+router.get('/lesson', async (req, res) => {
+    const { taskName } = req.query;
+    try {
+        const prompt = `Bạn là một gia sư AI xuất sắc. Hãy viết một bài giảng chi tiết, dễ hiểu về chủ đề sau: "${taskName}".
+Yêu cầu định dạng bằng Markdown (.md) và không cần bọc trong JSON. Bài giảng phải có cấu trúc:
+1. Giải thích khái niệm cốt lõi một cách sinh động (sử dụng ví dụ thực tế).
+2. Code minh họa hoặc các bước thực hành chi tiết (nếu có).
+3. Tóm tắt 3 ý chính quan trọng nhất cần nhớ.
+Luôn trình bày bằng ngôn ngữ dễ gần, khuyến khích người học.`;
+
+        const responseText = await generateGroqContent(prompt, "Bạn là chuyên gia giáo dục cung cấp bài giảng markdown.", false);
+        res.json({ lesson: responseText });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Lỗi khi sinh bài giảng." });
     }
 });
 

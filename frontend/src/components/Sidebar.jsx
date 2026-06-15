@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -13,8 +13,20 @@ import {
 
 function Sidebar() {
   const navigate = useNavigate();
-  const userData = localStorage.getItem('user');
-  const user = userData ? JSON.parse(userData) : null;
+  const [user, setUser] = useState(() => {
+    const userData = localStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
+  });
+
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      const userData = localStorage.getItem('user');
+      setUser(userData ? JSON.parse(userData) : null);
+    };
+
+    window.addEventListener('userUpdated', handleUserUpdate);
+    return () => window.removeEventListener('userUpdated', handleUserUpdate);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -28,11 +40,11 @@ function Sidebar() {
     `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-medium group relative overflow-hidden ${
       isActive 
         ? 'bg-gradient-to-r from-accentPrimary/10 to-transparent text-accentPrimary shadow-sm border border-accentPrimary/20' 
-        : 'text-textSecondary hover:bg-white/40 hover:text-textPrimary hover:shadow-sm border border-transparent'
+        : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-800 hover:shadow-sm border border-transparent'
     }`;
 
   return (
-    <aside className="w-[280px] bg-white shadow-[4px_0_24px_rgba(0,0,0,0.02)] p-6 flex flex-col h-full border-r border-borderGlass shrink-0 z-10 relative">
+    <aside className="w-[280px] bg-white/60 backdrop-blur-3xl p-6 flex flex-col h-full border-r border-white/60 shrink-0 z-20 relative">
       <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer transition-transform hover:scale-105" onClick={() => navigate('/dashboard')}>
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accentPrimary to-accentSecondary flex items-center justify-center text-white shadow-lg shadow-accentPrimary/30">
           <Sparkles className="w-5 h-5" />
@@ -41,11 +53,14 @@ function Sidebar() {
       </div>
 
       <div 
-        className="flex items-center gap-4 p-3 bg-slate-50/50 border border-slate-100 rounded-2xl mb-8 cursor-pointer hover:border-accentPrimary/30 hover:bg-white hover:shadow-md transition-all duration-300 group" 
+        className="flex items-center gap-4 p-3 bg-white/60 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl mb-8 cursor-pointer hover:border-accentPrimary/40 hover:bg-white hover:shadow-md transition-all duration-300 group" 
         onClick={() => navigate('/profile')}
       >
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accentPrimary/20 to-accentSecondary/20 border-2 border-white shadow-sm flex items-center justify-center text-accentPrimary font-bold shrink-0 group-hover:scale-105 transition-transform">
-          {user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-5 h-5" />}
+        <div 
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-accentPrimary/20 to-accentSecondary/20 border-2 border-white shadow-sm flex items-center justify-center text-accentPrimary font-bold shrink-0 group-hover:scale-105 transition-transform bg-cover bg-center"
+          style={user.avatar ? { backgroundImage: `url(${user.avatar})` } : {}}
+        >
+          {!user.avatar && (user.name ? user.name.charAt(0).toUpperCase() : <UserIcon className="w-5 h-5" />)}
         </div>
         <div className="overflow-hidden flex-1">
           <h4 className="text-sm font-bold text-slate-800 truncate group-hover:text-accentPrimary transition-colors">{user.name || 'Học viên'}</h4>

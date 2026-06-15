@@ -8,7 +8,12 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     role VARCHAR(20) DEFAULT 'user',
     progress INT DEFAULT 0,
-    quizzes_taken INT DEFAULT 0
+    quizzes_taken INT DEFAULT 0,
+    avatar LONGTEXT,
+    bio TEXT,
+    streak_count INT DEFAULT 0,
+    last_login_date DATE,
+    login_history TEXT
 );
 
 CREATE TABLE IF NOT EXISTS goals (
@@ -41,4 +46,23 @@ CREATE TABLE IF NOT EXISTS logs (
 
 -- Insert a default admin account so you can log into the Admin panel
 INSERT IGNORE INTO users (id, name, email, password, role) 
-VALUES ('admin_root', 'Super Admin', 'admin@eduai.com', '123456', 'admin');
+VALUES ('admin_root', 'Super Admin', 'admin@eduai.com', '$2b$10$j.LkZKTQWgI8BihGO.J28.CW3kKHdF/WgwDTY9V8sh/zAqFwOjdeu', 'admin');
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL,
+    title VARCHAR(255) DEFAULT 'Cuộc trò chuyện mới',
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id INT NOT NULL,
+    user_id VARCHAR(50) NOT NULL,
+    role VARCHAR(10) NOT NULL,
+    text TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

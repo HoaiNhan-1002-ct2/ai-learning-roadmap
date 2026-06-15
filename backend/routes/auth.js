@@ -22,6 +22,43 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: "Email hoặc mật khẩu không chính xác!" });
         }
         
+        // --- Streak & Login History Logic ---
+        const today = new Date();
+        // Adjust for timezone if needed, here we use local date string roughly by taking timezone offset
+        const todayStr = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        
+        let newStreak = user.streak_count || 0;
+        let loginHistory = user.login_history ? JSON.parse(user.login_history) : [];
+        
+        let lastLoginDate = user.last_login_date ? new Date(user.last_login_date) : null;
+        const lastLoginStr = lastLoginDate ? new Date(lastLoginDate.getTime() - (lastLoginDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : null;
+
+        if (lastLoginStr !== todayStr) {
+            if (lastLoginStr) {
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                const yesterdayStr = new Date(yesterday.getTime() - (yesterday.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                
+                if (lastLoginStr === yesterdayStr) {
+                    newStreak += 1;
+                } else {
+                    newStreak = 1; // reset streak
+                }
+            } else {
+                newStreak = 1; // first time login
+            }
+            
+            if (!loginHistory.includes(todayStr)) {
+                loginHistory.push(todayStr);
+                // Keep only last 30 days
+                if (loginHistory.length > 30) loginHistory = loginHistory.slice(-30);
+            }
+            
+            await pool.query('UPDATE users SET streak_count = ?, last_login_date = ?, login_history = ? WHERE id = ?', 
+                [newStreak, todayStr, JSON.stringify(loginHistory), user.id]);
+        }
+        // ------------------------------------
+
         // Let's format the user object to match the frontend expectations
         // Goal needs to be fetched
         const [goalRows] = await pool.query('SELECT * FROM goals WHERE user_id = ?', [user.id]);
@@ -50,7 +87,9 @@ router.post('/login', async (req, res) => {
                 name: t.name,
                 stage: t.stage,
                 completed: t.completed ? true : false
-            }))
+            })),
+            streakCount: newStreak,
+            loginHistory: loginHistory
         };
 
         // Create JWT payload
@@ -103,7 +142,9 @@ router.post('/register', async (req, res) => {
             goal: null,
             progress: 0,
             quizzesTaken: 0,
-            tasks: []
+            tasks: [],
+            streakCount: 0,
+            loginHistory: []
         };
 
         // Create JWT payload

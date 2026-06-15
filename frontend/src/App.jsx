@@ -8,6 +8,10 @@ import Roadmap from './pages/Roadmap';
 import Quiz from './pages/Quiz';
 import Chatbot from './pages/Chatbot';
 import Layout from './components/Layout';
+import AdminLayout from './components/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminLogs from './pages/admin/AdminLogs';
 
 function App() {
   return (
@@ -21,6 +25,11 @@ function App() {
         <Route path="/roadmap" element={<Layout><Roadmap /></Layout>} />
         <Route path="/quiz" element={<Layout><Quiz /></Layout>} />
         <Route path="/chatbot" element={<Layout><Chatbot /></Layout>} />
+        
+        {/* Admin Routes */}
+        <Route path="/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
+        <Route path="/admin/users" element={<AdminLayout><AdminUsers /></AdminLayout>} />
+        <Route path="/admin/logs" element={<AdminLayout><AdminLogs /></AdminLayout>} />
       </Routes>
     </Router>
   );

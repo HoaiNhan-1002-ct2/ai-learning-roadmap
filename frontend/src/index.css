@@ -5,24 +5,40 @@
 @layer base {
   body {
     @apply bg-bgMain text-textPrimary antialiased min-h-screen overflow-x-hidden;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Be Vietnam Pro', sans-serif;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Be Vietnam Pro', sans-serif;
   }
 }
 
 @layer components {
   .glass-panel {
-    @apply bg-bgGlass border border-borderGlass rounded-2xl shadow-sm transition-all duration-300;
+    @apply bg-white/60 backdrop-blur-3xl border border-white/60 rounded-3xl shadow-[0_8px_32px_rgba(31,38,135,0.05)] transition-all duration-500 relative;
+  }
+  .glass-panel::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-white/40 to-transparent opacity-0 transition-opacity duration-500 pointer-events-none rounded-[inherit];
+  }
+  .glass-panel:hover::before {
+    @apply opacity-100;
   }
   .glass-panel:hover {
-    @apply border-slate-300 shadow-md;
+    @apply border-white/80 shadow-[0_16px_48px_rgba(139,92,246,0.1)] -translate-y-1;
   }
+  
   .btn-primary {
-    @apply bg-gradient-to-br from-accentPrimary to-accentSecondary text-white px-6 py-3 font-semibold rounded-lg shadow-md transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-lg flex items-center justify-center gap-2;
+    @apply bg-gradient-to-r from-violet-500 via-pink-500 to-orange-400 text-white px-8 py-3.5 font-bold rounded-2xl shadow-[0_8px_20px_rgba(236,72,153,0.3)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(236,72,153,0.4)] active:translate-y-0 active:scale-95 flex items-center justify-center gap-2 relative overflow-hidden bg-[length:200%_auto] hover:bg-[position:right_center];
   }
+  .btn-primary::after {
+    content: '';
+    @apply absolute inset-0 bg-white/20 opacity-0 transition-opacity duration-300;
+  }
+  .btn-primary:hover::after {
+    @apply opacity-100;
+  }
+  
   .btn-secondary {
-    @apply bg-white/5 border border-borderGlass text-textPrimary px-6 py-3 font-medium rounded-lg transition-colors duration-300 hover:bg-white/10 hover:border-white/20 flex items-center justify-center gap-2;
+    @apply bg-white/80 backdrop-blur-md border-2 border-white/80 text-slate-700 px-8 py-3.5 font-bold rounded-2xl transition-all duration-500 hover:bg-white hover:border-violet-200 hover:shadow-lg flex items-center justify-center gap-2;
   }
 }

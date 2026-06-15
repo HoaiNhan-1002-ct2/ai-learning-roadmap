@@ -10,6 +10,19 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (user && user.role) {
+        config.headers['x-user-role'] = user.role;
+      }
+    }
+  } catch (err) {
+    console.error('Error parsing user data in interceptor', err);
+  }
+  
   return config;
 });
 

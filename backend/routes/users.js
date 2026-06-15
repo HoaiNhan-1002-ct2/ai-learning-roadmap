@@ -45,6 +45,8 @@ async function getUserFull(userId) {
         role: user.role,
         progress: user.progress,
         quizzesTaken: user.quizzes_taken,
+        avatar: user.avatar,
+        bio: user.bio,
         goal: goal,
         tasks: taskRows.map(t => ({
             id: t.id,
@@ -57,15 +59,27 @@ async function getUserFull(userId) {
 
 router.put('/:userId/profile', checkOwner, async (req, res) => {
     const { userId } = req.params;
-    const { name } = req.body;
+    const { name, avatar, bio, password } = req.body;
     
     try {
         const user = await getUserFull(userId);
         if (!user) return res.status(404).json({ error: "Không tìm thấy người dùng!" });
 
         const oldName = user.name;
-        await pool.query('UPDATE users SET name = ? WHERE id = ?', [name, userId]);
-        await logActivity(`Người dùng '${oldName}' đã đổi tên thành '${name}'.`, "info");
+        
+        let query = 'UPDATE users SET name = ?, avatar = ?, bio = ?';
+        let params = [name, avatar || null, bio || null];
+        
+        if (password && password.trim() !== '') {
+            query += ', password = ?';
+            params.push(password);
+        }
+        
+        query += ' WHERE id = ?';
+        params.push(userId);
+        
+        await pool.query(query, params);
+        await logActivity(`Người dùng '${oldName}' đã cập nhật thông tin hồ sơ.`, "info");
         
         const updatedUser = await getUserFull(userId);
         res.json({ user: updatedUser });

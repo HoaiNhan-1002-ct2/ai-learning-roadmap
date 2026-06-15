@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Map, Clock, CheckCircle2, Circle, Trophy, Layers, ChevronDown, ChevronUp, BookOpen, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { Map, Clock, CheckCircle2, Circle, Trophy, Layers, ChevronDown, ChevronUp, BookOpen, Link as LinkIcon, Loader2, GraduationCap } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 function Roadmap() {
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user')));
@@ -10,6 +11,10 @@ function Roadmap() {
   const [expandedStages, setExpandedStages] = useState({});
   const [taskResources, setTaskResources] = useState({});
   const [loadingResources, setLoadingResources] = useState({});
+  const [taskLessons, setTaskLessons] = useState({});
+  const [loadingLessons, setLoadingLessons] = useState({});
+  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
+  const [completedStageName, setCompletedStageName] = useState("");
   const navigate = useNavigate();
 
   const fetchResources = async (e, taskId, taskName) => {
@@ -24,6 +29,31 @@ function Roadmap() {
       console.error(err);
     } finally {
       setLoadingResources(prev => ({ ...prev, [taskId]: false }));
+    }
+  };
+
+  const fetchLesson = async (e, taskId, taskName) => {
+    e.stopPropagation();
+    // Toggle off if already open
+    if (taskLessons[taskId]) {
+      setTaskLessons(prev => {
+        const newLessons = { ...prev };
+        delete newLessons[taskId];
+        return newLessons;
+      });
+      return;
+    }
+
+    if (loadingLessons[taskId]) return;
+    
+    setLoadingLessons(prev => ({ ...prev, [taskId]: true }));
+    try {
+      const res = await api.get(`/roadmap/lesson?taskName=${encodeURIComponent(taskName)}`);
+      setTaskLessons(prev => ({ ...prev, [taskId]: res.data.lesson }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingLessons(prev => ({ ...prev, [taskId]: false }));
     }
   };
 
@@ -56,8 +86,25 @@ function Roadmap() {
   const toggleTask = async (taskId) => {
     try {
       const res = await api.post(`/users/${user.id}/tasks/toggle`, { taskId });
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      setUser(res.data.user);
+      const updatedUser = res.data.user;
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      if (roadmap) {
+         for (const stage of roadmap.stages) {
+            const hasTask = stage.tasks.some(t => t.id === taskId);
+            if (hasTask) {
+               const stageCompletedBefore = stage.tasks.every(t => user.tasks?.find(ut => ut.id === t.id)?.completed);
+               const stageCompletedAfter = stage.tasks.every(t => updatedUser.tasks?.find(ut => ut.id === t.id)?.completed);
+               if (!stageCompletedBefore && stageCompletedAfter) {
+                  setCompletedStageName(stage.title);
+                  setShowCompletionPopup(true);
+               }
+               break;
+            }
+         }
+      }
+      
+      setUser(updatedUser);
     } catch (err) {
       alert("Lỗi khi cập nhật tiến độ!");
     }
@@ -74,13 +121,13 @@ function Roadmap() {
 
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in duration-500 pb-10">
-      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 glass-panel p-6">
         <div>
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 mb-4 shadow-sm">
-            <Map className="w-6 h-6" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 text-white mb-4 shadow-[0_8px_20px_rgba(236,72,153,0.3)] animate-float">
+            <Map className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Lộ trình học tập</h2>
-          <p className="text-slate-500 mt-1 text-sm">Mục tiêu: <span className="font-semibold text-slate-700">{user?.goal?.title || 'Chưa xác định'}</span></p>
+          <h2 className="text-4xl font-extrabold text-slate-800 tracking-tight">Lộ trình học tập</h2>
+          <p className="text-slate-500 mt-2 text-base">Mục tiêu: <span className="font-bold text-violet-600 px-3 py-1 bg-violet-50 rounded-full">{user?.goal?.title || 'Chưa xác định'}</span></p>
         </div>
         
         {roadmap && (
@@ -99,13 +146,13 @@ function Roadmap() {
       </header>
       
       {!user?.goal ? (
-        <div className="bg-white rounded-3xl p-12 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex flex-col items-center">
+        <div className="glass-panel p-12 text-center flex flex-col items-center">
           <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
             <Layers className="w-10 h-10 text-slate-300" />
           </div>
           <h3 className="text-xl font-bold text-slate-800 mb-2">Chưa có lộ trình nào</h3>
           <p className="text-slate-500 mb-6 max-w-sm">Hãy thiết lập mục tiêu để AI có thể sinh ra lộ trình phù hợp với bạn nhé!</p>
-          <button onClick={() => navigate('/goals')} className="bg-accentPrimary text-white px-6 py-2.5 rounded-xl font-bold shadow-md shadow-accentPrimary/20 hover:-translate-y-0.5 transition-all">
+          <button onClick={() => navigate('/goals')} className="btn-primary">
             Thiết lập Mục tiêu
           </button>
         </div>
@@ -129,13 +176,13 @@ function Roadmap() {
                   
                   {/* Timeline Node */}
                   <div className="relative z-20 mt-1 shrink-0">
-                    <div className={`w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-sm transition-colors ${allCompleted ? 'bg-success text-white' : 'bg-slate-200 text-slate-500'}`}>
-                      {allCompleted ? <CheckCircle2 className="w-4 h-4" /> : <span className="font-bold text-xs">{idx + 1}</span>}
+                    <div className={`w-10 h-10 rounded-full border-4 border-white flex items-center justify-center shadow-lg transition-all duration-500 ${allCompleted ? 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-emerald-500/30' : isExpanded ? 'bg-gradient-to-br from-violet-500 to-pink-500 text-white shadow-pink-500/30 animate-pulse-slow' : 'bg-slate-200 text-slate-500'}`}>
+                      {allCompleted ? <CheckCircle2 className="w-5 h-5" /> : <span className="font-bold text-sm">{idx + 1}</span>}
                     </div>
                   </div>
 
                   {/* Stage Card */}
-                  <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all hover:border-slate-200">
+                  <div className="flex-1 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all hover:border-indigo-200 hover:shadow-md hover:-translate-y-0.5">
                     {/* Header / Accordion Trigger */}
                     <div 
                       className="p-4 md:p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
@@ -169,21 +216,42 @@ function Roadmap() {
                                     {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
                                   </div>
                                   <span className={`text-sm font-medium flex-1 ${isCompleted ? "line-through text-slate-400" : "text-slate-700"}`}>{task.name}</span>
-                                  <button 
-                                    onClick={(e) => fetchResources(e, task.id, task.name)}
-                                    disabled={loadingResources[task.id]}
-                                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-accentPrimary/10 text-accentPrimary hover:bg-accentPrimary hover:text-white transition-colors"
-                                  >
-                                    {loadingResources[task.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BookOpen className="w-3.5 h-3.5" />}
-                                    <span>Tài liệu (AI)</span>
-                                  </button>
+                                  <div className="flex items-center gap-2">
+                                    <button 
+                                      onClick={(e) => fetchLesson(e, task.id, task.name)}
+                                      disabled={loadingLessons[task.id]}
+                                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-600 hover:bg-pink-500 hover:text-white transition-colors"
+                                    >
+                                      {loadingLessons[task.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <GraduationCap className="w-3.5 h-3.5" />}
+                                      <span>{taskLessons[task.id] ? 'Đóng bài học' : 'Học ngay (AI)'}</span>
+                                    </button>
+                                    <button 
+                                      onClick={(e) => fetchResources(e, task.id, task.name)}
+                                      disabled={loadingResources[task.id]}
+                                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-accentPrimary/10 text-accentPrimary hover:bg-accentPrimary hover:text-white transition-colors"
+                                    >
+                                      {loadingResources[task.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BookOpen className="w-3.5 h-3.5" />}
+                                      <span>Tài liệu tham khảo</span>
+                                    </button>
+                                  </div>
                                 </div>
+                                
+                                {/* Render AI Lesson */}
+                                {taskLessons[task.id] && (
+                                  <div className="ml-11 mr-2 p-5 md:p-8 bg-slate-50/80 backdrop-blur-sm rounded-2xl border border-pink-100 shadow-inner animate-in fade-in slide-in-from-top-2 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/5 blur-3xl rounded-full"></div>
+                                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-violet-500/5 blur-3xl rounded-full"></div>
+                                    <div className="relative z-10 prose prose-slate prose-headings:text-slate-800 prose-a:text-pink-600 hover:prose-a:text-pink-500 prose-strong:text-slate-700 max-w-none text-sm md:text-base">
+                                      <ReactMarkdown>{taskLessons[task.id]}</ReactMarkdown>
+                                    </div>
+                                  </div>
+                                )}
                                 
                                 {/* Render Resources */}
                                 {taskResources[task.id] && (
                                   <div className="ml-11 mr-2 p-3 bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col gap-2 animate-in fade-in slide-in-from-top-2">
                                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tài liệu gợi ý từ AI</p>
-                                    {taskResources[task.id].map((res, i) => (
+                                    {Array.isArray(taskResources[task.id]) ? taskResources[task.id].map((res, i) => (
                                       <a 
                                         key={i} 
                                         href={res.url} 
@@ -197,7 +265,7 @@ function Roadmap() {
                                           <span className="text-[11px] text-slate-400">{res.type}</span>
                                         </div>
                                       </a>
-                                    ))}
+                                    )) : <p className="text-sm text-red-500">Lỗi: Định dạng dữ liệu không hợp lệ từ AI.</p>}
                                   </div>
                                 )}
                               </div>
@@ -220,6 +288,38 @@ function Roadmap() {
               </div>
             </div>
             <h4 className="font-bold text-slate-700 text-sm">Hoàn thành mục tiêu</h4>
+          </div>
+        </div>
+      )}
+
+      {/* Completion Popup */}
+      {showCompletionPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trophy className="w-8 h-8 text-success" />
+            </div>
+            <h3 className="text-2xl font-bold text-center text-slate-800 mb-2">Chúc mừng! 🎉</h3>
+            <p className="text-center text-slate-500 mb-8">
+              Bạn đã hoàn thành {completedStageName ? `giai đoạn "${completedStageName}"` : "các nhiệm vụ"}. Hãy làm một bài test nhỏ để củng cố kiến thức nhé!
+            </p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setShowCompletionPopup(false)}
+                className="flex-1 py-3 px-4 rounded-xl font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                Để sau
+              </button>
+              <button 
+                onClick={() => {
+                  setShowCompletionPopup(false);
+                  navigate('/quiz');
+                }}
+                className="flex-1 py-3 px-4 rounded-xl font-semibold text-white bg-accentPrimary hover:bg-accentPrimary/90 transition-colors shadow-lg shadow-accentPrimary/30"
+              >
+                Làm Quiz ngay
+              </button>
+            </div>
           </div>
         </div>
       )}

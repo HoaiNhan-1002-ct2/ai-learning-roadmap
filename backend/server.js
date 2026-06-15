@@ -1,3 +1,4 @@
+// Trigger restart to load .env variables
 const express = require('express');
 const cors = require('cors');
 
